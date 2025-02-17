@@ -658,7 +658,7 @@ async def run_deep_search(research_task, max_search_iteration_input, max_query_p
     return markdown_content, file_path, gr.update(value="Stop", interactive=True),  gr.update(interactive=True) 
     
 
-def create_ui(config, theme_name="Ocean"):
+def create_ui(config, theme_name="Ocean", auto_run=False):
     css = """
     .gradio-container {
         max-width: 1200px !important;
@@ -1054,51 +1054,41 @@ def create_ui(config, theme_name="Ocean"):
         use_own_browser.change(fn=close_global_browser)
         keep_browser_open.change(fn=close_global_browser)
 
-        # Auto-run the agent when the UI loads
-        async def auto_run():
-            # Initialize default values
-            html_content = "<h1 style='width:80vw; height:50vh'>Starting browser session...</h1>"
-            final_result = errors = model_actions = model_thoughts = ""
-            latest_video = trace = history_file = None
-            stop_button_update = gr.update(value="Stop", interactive=True)
-            run_button_update = gr.update(interactive=True)
+        # Only add the auto-run event if the flag is set
+        if auto_run:
+            async def initialize_and_run():
+                html_content = "<h1 style='width:80vw; height:50vh'>Starting browser session...</h1>"
+                final_result = errors = model_actions = model_thoughts = ""
+                latest_video = trace = history_file = None
+                stop_button_update = gr.update(value="Stop", interactive=True)
+                run_button_update = gr.update(interactive=True)
+                return [
+                    html_content, final_result, errors, model_actions, model_thoughts,
+                    latest_video, trace, history_file, stop_button_update, run_button_update
+                ]
 
-            # Return initial values
-            return [
-                html_content,
-                final_result,
-                errors,
-                model_actions,
-                model_thoughts,
-                latest_video,
-                trace,
-                history_file,
-                stop_button_update,
-                run_button_update
-            ]
-
-        demo.load(
-            fn=auto_run,
-            outputs=[
-                browser_view, final_result_output, errors_output,
-                model_actions_output, model_thoughts_output, recording_display,
-                trace_file, agent_history_file, stop_button, run_button
-            ]
-        ).then(
-            fn=run_with_stream,
-            inputs=[
-                agent_type, llm_provider, llm_model_name, llm_num_ctx, llm_temperature, 
-                llm_base_url, llm_api_key, use_own_browser, keep_browser_open, headless, 
-                disable_security, window_w, window_h, save_recording_path, 
-                save_agent_history_path, save_trace_path, enable_recording, task, 
-                add_infos, max_steps, use_vision, max_actions_per_step, tool_calling_method
-            ],
-            outputs=[
-                browser_view, final_result_output, errors_output,
-                model_actions_output, model_thoughts_output, recording_display,
-                trace_file, agent_history_file, stop_button, run_button
-            ]
-        )
+            demo.load(
+                fn=initialize_and_run,
+                outputs=[
+                    browser_view, final_result_output, errors_output,
+                    model_actions_output, model_thoughts_output, recording_display,
+                    trace_file, agent_history_file, stop_button, run_button
+                ]
+            ).then(
+                fn=run_with_stream,
+                inputs=[
+                    agent_type, llm_provider, llm_model_name, llm_num_ctx, llm_temperature, 
+                    llm_base_url, llm_api_key, use_own_browser, keep_browser_open, headless, 
+                    disable_security, window_w, window_h, save_recording_path, 
+                    save_agent_history_path, save_trace_path, enable_recording, task, 
+                    add_infos, max_steps, use_vision, max_actions_per_step, tool_calling_method
+                ],
+                outputs=[
+                    browser_view, final_result_output, errors_output,
+                    model_actions_output, model_thoughts_output, recording_display,
+                    trace_file, agent_history_file, stop_button, run_button
+                ]
+            )
 
     return demo
 
@@ -1108,11 +1098,36 @@ def main():
     parser.add_argument("--port", type=int, default=7788, help="Port to listen on")
     parser.add_argument("--theme", type=str, default="Ocean", choices=theme_map.keys(), help="Theme to use for the UI")
     parser.add_argument("--dark-mode", action="store_true", help="Enable dark mode")
+    
+    # Add new CLI arguments
+    parser.add_argument("--auto-run", action="store_true", help="Automatically run the agent when the UI starts")
+    parser.add_argument("--llm-provider", type=str, choices=[provider for provider in utils.model_names.keys()], help="LLM provider to use")
+    parser.add_argument("--llm-model", type=str, help="Model name to use")
+    parser.add_argument("--use-own-browser", action="store_true", help="Use your own browser instance")
+    parser.add_argument("--keep-browser-open", action="store_true", help="Keep browser open between tasks")
+    parser.add_argument("--enable-recording", action="store_true", help="Enable browser recording")
+    parser.add_argument("--task", type=str, help="Task description for the agent")
+    parser.add_argument("--add-info", type=str, help="Additional information for the task")
+    
     args = parser.parse_args()
 
     config_dict = default_config()
+    
+    # Update config with CLI arguments if provided
+    if args.llm_provider:
+        config_dict['llm_provider'] = args.llm_provider
+    if args.llm_model:
+        config_dict['llm_model_name'] = args.llm_model
+    if args.use_own_browser:
+        config_dict['use_own_browser'] = True
+    if args.keep_browser_open:
+        config_dict['keep_browser_open'] = True
+    if args.enable_recording:
+        config_dict['enable_recording'] = True
+    if args.task:
+        config_dict['task'] = args.task
 
-    demo = create_ui(config_dict, theme_name=args.theme)
+    demo = create_ui(config_dict, theme_name=args.theme, auto_run=args.auto_run)
     demo.launch(server_name=args.ip, server_port=args.port)
 
 if __name__ == '__main__':
