@@ -1054,6 +1054,52 @@ def create_ui(config, theme_name="Ocean"):
         use_own_browser.change(fn=close_global_browser)
         keep_browser_open.change(fn=close_global_browser)
 
+        # Auto-run the agent when the UI loads
+        async def auto_run():
+            # Initialize default values
+            html_content = "<h1 style='width:80vw; height:50vh'>Starting browser session...</h1>"
+            final_result = errors = model_actions = model_thoughts = ""
+            latest_video = trace = history_file = None
+            stop_button_update = gr.update(value="Stop", interactive=True)
+            run_button_update = gr.update(interactive=True)
+
+            # Return initial values
+            return [
+                html_content,
+                final_result,
+                errors,
+                model_actions,
+                model_thoughts,
+                latest_video,
+                trace,
+                history_file,
+                stop_button_update,
+                run_button_update
+            ]
+
+        demo.load(
+            fn=auto_run,
+            outputs=[
+                browser_view, final_result_output, errors_output,
+                model_actions_output, model_thoughts_output, recording_display,
+                trace_file, agent_history_file, stop_button, run_button
+            ]
+        ).then(
+            fn=run_with_stream,
+            inputs=[
+                agent_type, llm_provider, llm_model_name, llm_num_ctx, llm_temperature, 
+                llm_base_url, llm_api_key, use_own_browser, keep_browser_open, headless, 
+                disable_security, window_w, window_h, save_recording_path, 
+                save_agent_history_path, save_trace_path, enable_recording, task, 
+                add_infos, max_steps, use_vision, max_actions_per_step, tool_calling_method
+            ],
+            outputs=[
+                browser_view, final_result_output, errors_output,
+                model_actions_output, model_thoughts_output, recording_display,
+                trace_file, agent_history_file, stop_button, run_button
+            ]
+        )
+
     return demo
 
 def main():
