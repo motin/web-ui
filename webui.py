@@ -1100,6 +1100,7 @@ def main():
     parser.add_argument("--dark-mode", action="store_true", help="Enable dark mode")
     
     # Add new CLI arguments
+    parser.add_argument("--config-file", type=str, help="Path to configuration file (.pkl) to load at startup")
     parser.add_argument("--auto-run", action="store_true", help="Automatically run the agent when the UI starts")
     parser.add_argument("--llm-provider", type=str, choices=[provider for provider in utils.model_names.keys()], help="LLM provider to use")
     parser.add_argument("--llm-model", type=str, help="Model name to use")
@@ -1113,7 +1114,18 @@ def main():
 
     config_dict = default_config()
     
-    # Update config with CLI arguments if provided
+    # Load configuration file if provided
+    if args.config_file:
+        try:
+            loaded_config = load_config_from_file(args.config_file)
+            if isinstance(loaded_config, dict):
+                config_dict.update(loaded_config)
+            else:
+                print(f"Error: Invalid configuration format in {args.config_file}")
+        except Exception as e:
+            print(f"Error loading configuration file: {e}")
+    
+    # CLI arguments override loaded config
     if args.llm_provider:
         config_dict['llm_provider'] = args.llm_provider
     if args.llm_model:
