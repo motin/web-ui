@@ -1103,11 +1103,11 @@ def main():
     parser.add_argument("--auto-run", action="store_true", help="Automatically run the agent when the UI starts")
     parser.add_argument("--llm-provider", type=str, choices=[provider for provider in utils.model_names.keys()], help="LLM provider to use")
     parser.add_argument("--llm-model", type=str, help="Model name to use")
-    parser.add_argument("--use-own-browser", action="store_true", help="Use your own browser instance")
-    parser.add_argument("--keep-browser-open", action="store_true", help="Keep browser open between tasks")
-    parser.add_argument("--enable-recording", action="store_true", help="Enable browser recording")
-    parser.add_argument("--task", type=str, help="Task description for the agent")
-    parser.add_argument("--add-info", type=str, help="Additional information for the task")
+    parser.add_argument("--use-own-browser", type=str, choices=["true", "false"], help="Use your own browser instance")
+    parser.add_argument("--keep-browser-open", type=str, choices=["true", "false"], help="Keep browser open between tasks")
+    parser.add_argument("--enable-recording", type=str, choices=["true", "false"], help="Enable or disable browser recording")
+    parser.add_argument("--task-file", type=str, help="Path to file containing the task description")
+    parser.add_argument("--add-info-file", type=str, help="Path to file containing additional information")
     
     args = parser.parse_args()
 
@@ -1118,14 +1118,27 @@ def main():
         config_dict['llm_provider'] = args.llm_provider
     if args.llm_model:
         config_dict['llm_model_name'] = args.llm_model
-    if args.use_own_browser:
-        config_dict['use_own_browser'] = True
-    if args.keep_browser_open:
-        config_dict['keep_browser_open'] = True
-    if args.enable_recording:
-        config_dict['enable_recording'] = True
-    if args.task:
-        config_dict['task'] = args.task
+    if args.use_own_browser is not None:
+        config_dict['use_own_browser'] = args.use_own_browser.lower() == "true"
+    if args.keep_browser_open is not None:
+        config_dict['keep_browser_open'] = args.keep_browser_open.lower() == "true"
+    if args.enable_recording is not None:
+        config_dict['enable_recording'] = args.enable_recording.lower() == "true"
+    
+    # Read task and additional info from files if provided
+    if args.task_file:
+        try:
+            with open(args.task_file, 'r') as f:
+                config_dict['task'] = f.read().strip()
+        except Exception as e:
+            print(f"Error reading task file: {e}")
+            
+    if args.add_info_file:
+        try:
+            with open(args.add_info_file, 'r') as f:
+                config_dict['add_infos'] = f.read().strip()
+        except Exception as e:
+            print(f"Error reading additional info file: {e}")
 
     demo = create_ui(config_dict, theme_name=args.theme, auto_run=args.auto_run)
     demo.launch(server_name=args.ip, server_port=args.port)
