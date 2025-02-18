@@ -1085,7 +1085,7 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                         llm_provider, llm_model_name, llm_num_ctx, llm_temperature, llm_base_url, llm_api_key,
                         use_own_browser, keep_browser_open, headless, disable_security, enable_recording,
                         window_w, window_h, save_recording_path, save_trace_path, save_agent_history_path,
-                        task, config_status
+                        task, add_infos, config_status
                     ]
                 )
 
@@ -1096,7 +1096,7 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                         llm_provider, llm_model_name, llm_num_ctx, llm_temperature, llm_base_url, llm_api_key,
                         use_own_browser, keep_browser_open, headless, disable_security,
                         enable_recording, window_w, window_h, save_recording_path, save_trace_path,
-                        save_agent_history_path, task,
+                        save_agent_history_path, task, add_infos,
                     ],  
                     outputs=[config_status]
                 )

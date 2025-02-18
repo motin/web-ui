@@ -29,6 +29,7 @@ def default_config():
         "save_trace_path": "./tmp/traces",
         "save_agent_history_path": "./tmp/agent_history",
         "task": "go to google.com and type 'OpenAI' click search and give me the first url",
+        "add_infos": "",
     }
 
 
@@ -75,6 +76,7 @@ def save_current_config(*args):
         "save_trace_path": args[19],
         "save_agent_history_path": args[20],
         "task": args[21],
+        "add_infos": args[22],
     }
     return save_config_to_file(current_config)
 
@@ -106,6 +108,7 @@ def update_ui_from_config(config_file):
                 gr.update(value=loaded_config.get("save_trace_path", "./tmp/traces")),
                 gr.update(value=loaded_config.get("save_agent_history_path", "./tmp/agent_history")),
                 gr.update(value=loaded_config.get("task", "")),
+                gr.update(value=loaded_config.get("add_infos", "")),
                 "Configuration loaded successfully."
             )
         else:
@@ -114,12 +117,12 @@ def update_ui_from_config(config_file):
                 gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
                 gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
                 gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                gr.update(), "Error: Invalid configuration file."
+                gr.update(), gr.update(), gr.update(), "Error: Invalid configuration file."
             )
     return (
         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-        gr.update(), "No file selected."
+        gr.update(), gr.update(), gr.update(), "No file selected."
     )
