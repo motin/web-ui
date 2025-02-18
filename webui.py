@@ -1125,6 +1125,7 @@ def main():
     parser.add_argument("--port", type=int, default=7788, help="Port to listen on")
     parser.add_argument("--theme", type=str, default="Ocean", choices=theme_map.keys(), help="Theme to use for the UI")
     parser.add_argument("--dark-mode", action="store_true", help="Enable dark mode")
+    parser.add_argument("--share", action="store_true", help="Create a public Gradio link")
     
     # Add new CLI arguments
     parser.add_argument("--config-file", type=str, help="Path to configuration file (.pkl) to load at startup")
@@ -1180,7 +1181,7 @@ def main():
             print(f"Error reading additional info file: {e}")
 
     demo = create_ui(config_dict, theme_name=args.theme, auto_run=args.auto_run)
-    demo.launch(server_name=args.ip, server_port=args.port)
+    demo.launch(server_name=args.ip, server_port=args.port, share=args.share)
 
 if __name__ == '__main__':
     main()
