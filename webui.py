@@ -456,158 +456,169 @@ async def run_with_stream(
     max_steps,
     use_vision,
     max_actions_per_step,
-    tool_calling_method
+    tool_calling_method,
+    continuous_run
 ):
     global _global_agent_state
     stream_vw = 80
     stream_vh = int(80 * window_h // window_w)
-    if not headless:
-        result = await run_browser_agent(
-            agent_type=agent_type,
-            llm_provider=llm_provider,
-            llm_model_name=llm_model_name,
-            llm_num_ctx=llm_num_ctx,
-            llm_temperature=llm_temperature,
-            llm_base_url=llm_base_url,
-            llm_api_key=llm_api_key,
-            use_own_browser=use_own_browser,
-            keep_browser_open=keep_browser_open,
-            headless=headless,
-            disable_security=disable_security,
-            window_w=window_w,
-            window_h=window_h,
-            save_recording_path=save_recording_path,
-            save_agent_history_path=save_agent_history_path,
-            save_trace_path=save_trace_path,
-            enable_recording=enable_recording,
-            task=task,
-            add_infos=add_infos,
-            max_steps=max_steps,
-            use_vision=use_vision,
-            max_actions_per_step=max_actions_per_step,
-            tool_calling_method=tool_calling_method
-        )
-        # Add HTML content at the start of the result array
-        html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Using browser...</h1>"
-        yield [html_content] + list(result)
-    else:
-        try:
-            _global_agent_state.clear_stop()
-            # Run the browser agent in the background
-            agent_task = asyncio.create_task(
-                run_browser_agent(
-                    agent_type=agent_type,
-                    llm_provider=llm_provider,
-                    llm_model_name=llm_model_name,
-                    llm_num_ctx=llm_num_ctx,
-                    llm_temperature=llm_temperature,
-                    llm_base_url=llm_base_url,
-                    llm_api_key=llm_api_key,
-                    use_own_browser=use_own_browser,
-                    keep_browser_open=keep_browser_open,
-                    headless=headless,
-                    disable_security=disable_security,
-                    window_w=window_w,
-                    window_h=window_h,
-                    save_recording_path=save_recording_path,
-                    save_agent_history_path=save_agent_history_path,
-                    save_trace_path=save_trace_path,
-                    enable_recording=enable_recording,
-                    task=task,
-                    add_infos=add_infos,
-                    max_steps=max_steps,
-                    use_vision=use_vision,
-                    max_actions_per_step=max_actions_per_step,
-                    tool_calling_method=tool_calling_method
-                )
+    
+    while True:  # Main loop for continuous running
+        if _global_agent_state.is_stop_requested():
+            break
+            
+        if not headless:
+            result = await run_browser_agent(
+                agent_type=agent_type,
+                llm_provider=llm_provider,
+                llm_model_name=llm_model_name,
+                llm_num_ctx=llm_num_ctx,
+                llm_temperature=llm_temperature,
+                llm_base_url=llm_base_url,
+                llm_api_key=llm_api_key,
+                use_own_browser=use_own_browser,
+                keep_browser_open=keep_browser_open,
+                headless=headless,
+                disable_security=disable_security,
+                window_w=window_w,
+                window_h=window_h,
+                save_recording_path=save_recording_path,
+                save_agent_history_path=save_agent_history_path,
+                save_trace_path=save_trace_path,
+                enable_recording=enable_recording,
+                task=task,
+                add_infos=add_infos,
+                max_steps=max_steps,
+                use_vision=use_vision,
+                max_actions_per_step=max_actions_per_step,
+                tool_calling_method=tool_calling_method
             )
-
-            # Initialize values for streaming
+            # Add HTML content at the start of the result array
             html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Using browser...</h1>"
-            final_result = errors = model_actions = model_thoughts = ""
-            latest_videos = trace = history_file = None
-
-
-            # Periodically update the stream while the agent task is running
-            while not agent_task.done():
-                try:
-                    encoded_screenshot = await capture_screenshot(_global_browser_context)
-                    if encoded_screenshot is not None:
-                        html_content = f'<img src="data:image/jpeg;base64,{encoded_screenshot}" style="width:{stream_vw}vw; height:{stream_vh}vh ; border:1px solid #ccc;">'
-                    else:
-                        html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>"
-                except Exception as e:
-                    html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>"
-
-                if _global_agent_state and _global_agent_state.is_stop_requested():
-                    yield [
-                        html_content,
-                        final_result,
-                        errors,
-                        model_actions,
-                        model_thoughts,
-                        latest_videos,
-                        trace,
-                        history_file,
-                        gr.update(value="Stopping...", interactive=False),  # stop_button
-                        gr.update(interactive=False),  # run_button
-                    ]
-                    break
-                else:
-                    yield [
-                        html_content,
-                        final_result,
-                        errors,
-                        model_actions,
-                        model_thoughts,
-                        latest_videos,
-                        trace,
-                        history_file,
-                        gr.update(value="Stop", interactive=True),  # Re-enable stop button
-                        gr.update(interactive=True)  # Re-enable run button
-                    ]
-                await asyncio.sleep(0.05)
-
-            # Once the agent task completes, get the results
+            yield [html_content] + list(result)
+        else:
             try:
-                result = await agent_task
-                final_result, errors, model_actions, model_thoughts, latest_videos, trace, history_file, stop_button, run_button = result
-            except gr.Error:
-                final_result = ""
-                model_actions = ""
-                model_thoughts = ""
+                _global_agent_state.clear_stop()
+                # Run the browser agent in the background
+                agent_task = asyncio.create_task(
+                    run_browser_agent(
+                        agent_type=agent_type,
+                        llm_provider=llm_provider,
+                        llm_model_name=llm_model_name,
+                        llm_num_ctx=llm_num_ctx,
+                        llm_temperature=llm_temperature,
+                        llm_base_url=llm_base_url,
+                        llm_api_key=llm_api_key,
+                        use_own_browser=use_own_browser,
+                        keep_browser_open=keep_browser_open,
+                        headless=headless,
+                        disable_security=disable_security,
+                        window_w=window_w,
+                        window_h=window_h,
+                        save_recording_path=save_recording_path,
+                        save_agent_history_path=save_agent_history_path,
+                        save_trace_path=save_trace_path,
+                        enable_recording=enable_recording,
+                        task=task,
+                        add_infos=add_infos,
+                        max_steps=max_steps,
+                        use_vision=use_vision,
+                        max_actions_per_step=max_actions_per_step,
+                        tool_calling_method=tool_calling_method
+                    )
+                )
+
+                # Initialize values for streaming
+                html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Using browser...</h1>"
+                final_result = errors = model_actions = model_thoughts = ""
                 latest_videos = trace = history_file = None
 
+                # Periodically update the stream while the agent task is running
+                while not agent_task.done():
+                    try:
+                        encoded_screenshot = await capture_screenshot(_global_browser_context)
+                        if encoded_screenshot is not None:
+                            html_content = f'<img src="data:image/jpeg;base64,{encoded_screenshot}" style="width:{stream_vw}vw; height:{stream_vh}vh ; border:1px solid #ccc;">'
+                        else:
+                            html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>"
+                    except Exception as e:
+                        html_content = f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>"
+
+                    if _global_agent_state and _global_agent_state.is_stop_requested():
+                        yield [
+                            html_content,
+                            final_result,
+                            errors,
+                            model_actions,
+                            model_thoughts,
+                            latest_videos,
+                            trace,
+                            history_file,
+                            gr.update(value="Stopping...", interactive=False),  # stop_button
+                            gr.update(interactive=False),  # run_button
+                        ]
+                        break
+                    else:
+                        yield [
+                            html_content,
+                            final_result,
+                            errors,
+                            model_actions,
+                            model_thoughts,
+                            latest_videos,
+                            trace,
+                            history_file,
+                            gr.update(value="Stop", interactive=True),  # Re-enable stop button
+                            gr.update(interactive=True)  # Re-enable run button
+                        ]
+                    await asyncio.sleep(0.05)
+
+                # Once the agent task completes, get the results
+                try:
+                    result = await agent_task
+                    final_result, errors, model_actions, model_thoughts, latest_videos, trace, history_file, stop_button, run_button = result
+                except gr.Error:
+                    final_result = ""
+                    model_actions = ""
+                    model_thoughts = ""
+                    latest_videos = trace = history_file = None
+
+                except Exception as e:
+                    errors = f"Agent error: {str(e)}"
+
+                yield [
+                    html_content,
+                    final_result,
+                    errors,
+                    model_actions,
+                    model_thoughts,
+                    latest_videos,
+                    trace,
+                    history_file,
+                    stop_button,
+                    run_button
+                ]
+
             except Exception as e:
-                errors = f"Agent error: {str(e)}"
-
-            yield [
-                html_content,
-                final_result,
-                errors,
-                model_actions,
-                model_thoughts,
-                latest_videos,
-                trace,
-                history_file,
-                stop_button,
-                run_button
-            ]
-
-        except Exception as e:
-            import traceback
-            yield [
-                f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>",
-                "",
-                f"Error: {str(e)}\n{traceback.format_exc()}",
-                "",
-                "",
-                None,
-                None,
-                None,
-                gr.update(value="Stop", interactive=True),  # Re-enable stop button
-                gr.update(interactive=True)    # Re-enable run button
-            ]
+                import traceback
+                yield [
+                    f"<h1 style='width:{stream_vw}vw; height:{stream_vh}vh'>Waiting for browser session...</h1>",
+                    "",
+                    f"Error: {str(e)}\n{traceback.format_exc()}",
+                    "",
+                    "",
+                    None,
+                    None,
+                    None,
+                    gr.update(value="Stop", interactive=True),  # Re-enable stop button
+                    gr.update(interactive=True)    # Re-enable run button
+                ]
+                
+        if not continuous_run or _global_agent_state.is_stop_requested():
+            break
+            
+        # Add a small delay between runs to prevent overwhelming the system
+        await asyncio.sleep(1)
 
 # Define the theme map globally
 theme_map = {
@@ -868,6 +879,13 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                 )
 
                 with gr.Row():
+                    continuous_run = gr.Checkbox(
+                        label="Continuous Run",
+                        value=False,
+                        info="Restart the same job automatically when it completes",
+                    )
+
+                with gr.Row():
                     run_button = gr.Button("▶️ Run Agent", variant="primary", scale=2)
                     stop_button = gr.Button("⏹️ Stop", variant="stop", scale=1)
                     
@@ -932,7 +950,8 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                             agent_type, llm_provider, llm_model_name, llm_num_ctx, llm_temperature, llm_base_url, llm_api_key,
                             use_own_browser, keep_browser_open, headless, disable_security, window_w, window_h,
                             save_recording_path, save_agent_history_path, save_trace_path,  # Include the new path
-                            enable_recording, task, add_infos, max_steps, use_vision, max_actions_per_step, tool_calling_method
+                            enable_recording, task, add_infos, max_steps, use_vision, max_actions_per_step, tool_calling_method,
+                            continuous_run  # Add continuous_run to inputs
                         ],
                     outputs=[
                         browser_view,           # Browser view
