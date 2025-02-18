@@ -49,8 +49,12 @@ async def stop_agent():
     global _global_agent_state, _global_browser_context, _global_browser, _global_agent
 
     try:
-        # Request stop
-        _global_agent.stop()
+        # Set the stop flag in agent state
+        _global_agent_state.request_stop()
+        
+        # If there's an active agent, request stop
+        if _global_agent:
+            _global_agent.stop()
 
         # Update UI immediately
         message = "Stop requested - the agent will halt at the next safe point"
@@ -459,12 +463,16 @@ async def run_with_stream(
     tool_calling_method,
     continuous_run
 ):
-    global _global_agent_state
+    global _global_agent_state, _global_agent
     stream_vw = 80
     stream_vh = int(80 * window_h // window_w)
     
     while True:  # Main loop for continuous running
+        # Clear any previous stop request at the start of each run
+        _global_agent_state.clear_stop()
+        
         if _global_agent_state.is_stop_requested():
+            _global_agent = None  # Clear the global agent reference
             break
             
         if not headless:
