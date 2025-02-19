@@ -3,6 +3,9 @@ import pickle
 import uuid
 import gradio as gr
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def default_config():
@@ -38,15 +41,40 @@ def default_config():
 def load_config_from_url(url):
     """Load settings from a URL."""
     try:
+        logger.info("Attempting to load configuration from URL: %s", url)
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for bad status codes
+        
         if url.endswith('.pkl'):
+            logger.info("Loading PKL format configuration")
             settings = pickle.loads(response.content)
         else:
-            settings = response.json()  # Try to parse as JSON if not .pkl
+            logger.info("Loading JSON format configuration")
+            logger.debug("Raw response content: %s", response.text)
+            try:
+                settings = response.json()
+                logger.debug("Parsed JSON settings: %s", settings)
+            except Exception as json_error:
+                logger.error("Failed to parse JSON: %s", json_error)
+                logger.debug("Response content type: %s", type(response.content))
+                logger.debug("Response headers: %s", response.headers)
+                raise
+            
+        logger.info("Loaded configuration:")
+        for key, value in settings.items():
+            logger.debug("  %s: %s", key, value)
+            
+        # Validate expected keys are present
+        expected_keys = default_config().keys()
+        missing_keys = [key for key in expected_keys if key not in settings]
+        if missing_keys:
+            logger.warning("Missing expected keys in loaded configuration: %s", missing_keys)
+            
         return settings
     except Exception as e:
-        return f"Error loading configuration from URL: {str(e)}"
+        error_msg = "Error loading configuration from URL: %s" % str(e)
+        logger.error(error_msg)
+        return error_msg
 
 
 def load_config_from_file(config_file):

@@ -1180,27 +1180,34 @@ def main():
     args = parser.parse_args()
 
     config_dict = default_config()
+    logger.info("Initial default configuration: %s", config_dict)
     
     # Load configuration from URL if provided
     if args.config_url:
         try:
+            logger.info("Loading configuration from URL: %s", args.config_url)
             loaded_config = load_config_from_url(args.config_url)
             if isinstance(loaded_config, dict):
+                logger.info("Successfully loaded configuration from URL. Updating config with: %s", loaded_config)
                 config_dict.update(loaded_config)
+                logger.info("Final configuration after URL update: %s", config_dict)
             else:
-                print(f"Error: Invalid configuration format from URL: {loaded_config}")
+                logger.error("Invalid configuration format from URL: %s", loaded_config)
         except Exception as e:
-            print(f"Error loading configuration from URL: {e}")
+            logger.error("Error loading configuration from URL: %s", e)
     # Load configuration file if provided
     elif args.config_file:
         try:
+            logger.info("Loading configuration from file: %s", args.config_file)
             loaded_config = load_config_from_file(args.config_file)
             if isinstance(loaded_config, dict):
+                logger.info("Successfully loaded configuration from file. Updating config with: %s", loaded_config)
                 config_dict.update(loaded_config)
+                logger.info("Final configuration after file update: %s", config_dict)
             else:
-                print(f"Error: Invalid configuration format in {args.config_file}")
+                logger.error("Invalid configuration format in %s", args.config_file)
         except Exception as e:
-            print(f"Error loading configuration file: {e}")
+            logger.error("Error loading configuration file: %s", e)
     
     # CLI arguments override loaded config
     if args.llm_provider:
@@ -1220,14 +1227,16 @@ def main():
             with open(args.task_file, 'r') as f:
                 config_dict['task'] = f.read().strip()
         except Exception as e:
-            print(f"Error reading task file: {e}")
+            logger.error("Error reading task file: %s", e)
             
     if args.add_info_file:
         try:
             with open(args.add_info_file, 'r') as f:
                 config_dict['add_infos'] = f.read().strip()
         except Exception as e:
-            print(f"Error reading additional info file: {e}")
+            logger.error("Error reading additional info file: %s", e)
+
+    logger.info("Final configuration after all updates: %s", config_dict)
 
     demo = create_ui(config_dict, theme_name=args.theme, auto_run=args.auto_run)
     demo.launch(server_name=args.ip, server_port=args.port, share=args.share)
