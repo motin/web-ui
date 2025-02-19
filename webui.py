@@ -921,6 +921,7 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                     label="Additional Information",
                     lines=3,
                     placeholder="Add any helpful context or instructions...",
+                    value=config['add_infos'],
                     info="Optional hints to help the LLM complete the task",
                 )
 
