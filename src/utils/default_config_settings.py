@@ -2,6 +2,7 @@ import os
 import pickle
 import uuid
 import gradio as gr
+import requests
 
 
 def default_config():
@@ -31,6 +32,20 @@ def default_config():
         "task": "go to google.com and type 'OpenAI' click search and give me the first url",
         "add_infos": "",
     }
+
+
+def load_config_from_url(url):
+    """Load settings from a URL."""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        if url.endswith('.pkl'):
+            settings = pickle.loads(response.content)
+        else:
+            settings = response.json()  # Try to parse as JSON if not .pkl
+        return settings
+    except Exception as e:
+        return f"Error loading configuration from URL: {str(e)}"
 
 
 def load_config_from_file(config_file):

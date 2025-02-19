@@ -32,7 +32,7 @@ from src.agent.custom_prompts import CustomSystemPrompt, CustomAgentMessagePromp
 from src.browser.custom_context import BrowserContextConfig, CustomBrowserContext
 from src.controller.custom_controller import CustomController
 from gradio.themes import Citrus, Default, Glass, Monochrome, Ocean, Origin, Soft, Base
-from src.utils.default_config_settings import default_config, load_config_from_file, save_config_to_file, save_current_config, update_ui_from_config
+from src.utils.default_config_settings import default_config, load_config_from_file, save_config_to_file, save_current_config, update_ui_from_config, load_config_from_url
 from src.utils.utils import update_model_dropdown, get_latest_files, capture_screenshot
 
 
@@ -1167,6 +1167,7 @@ def main():
     
     # Add new CLI arguments
     parser.add_argument("--config-file", type=str, help="Path to configuration file (.pkl) to load at startup")
+    parser.add_argument("--config-url", type=str, help="URL to configuration file (.pkl or .json) to load at startup")
     parser.add_argument("--auto-run", action="store_true", help="Automatically run the agent when the UI starts")
     parser.add_argument("--llm-provider", type=str, choices=[provider for provider in utils.model_names.keys()], help="LLM provider to use")
     parser.add_argument("--llm-model", type=str, help="Model name to use")
@@ -1180,8 +1181,18 @@ def main():
 
     config_dict = default_config()
     
+    # Load configuration from URL if provided
+    if args.config_url:
+        try:
+            loaded_config = load_config_from_url(args.config_url)
+            if isinstance(loaded_config, dict):
+                config_dict.update(loaded_config)
+            else:
+                print(f"Error: Invalid configuration format from URL: {loaded_config}")
+        except Exception as e:
+            print(f"Error loading configuration from URL: {e}")
     # Load configuration file if provided
-    if args.config_file:
+    elif args.config_file:
         try:
             loaded_config = load_config_from_file(args.config_file)
             if isinstance(loaded_config, dict):
