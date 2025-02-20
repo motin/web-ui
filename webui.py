@@ -928,7 +928,7 @@ def create_ui(config, theme_name="Ocean", auto_run=False):
                 with gr.Row():
                     continuous_run = gr.Checkbox(
                         label="Continuous Run",
-                        value=False,
+                        value=config['continuous_run'],
                         info="Restart the same job automatically when it completes",
                     )
 
